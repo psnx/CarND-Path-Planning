@@ -7,7 +7,9 @@
 #include <vector>
 #include "Eigen-3.3/Eigen/Core"
 #include "Eigen-3.3/Eigen/QR"
+#include "Eigen-3.3/Eigen/LU"
 #include "json.hpp"
+#include "spline.h"
 
 #include "TG.h"
 
@@ -239,14 +241,27 @@ int main() {
 
           	vector<double> next_x_vals;
           	vector<double> next_y_vals;
-
+			
+			// My part
 			TG trajectory;
 			auto a = trajectory.JMT({1.0, 0.1}, {1.0, 0.1}, 0.1);
+			cout << "test \n";
 			cout << a[0];
 
 
 
           	// TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
+			double dist_inc = 0.5;
+    		for(int i = 0; i < 50; i++)
+    		{
+				double next_s = car_s + (i+1)*dist_inc; 
+				double next_d = 6;
+				vector<double> xy = getXY(next_s, next_d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+
+          		next_x_vals.push_back(xy[0]);
+          		next_y_vals.push_back(xy[1]);
+    		}
+
           	msgJson["next_x"] = next_x_vals;
           	msgJson["next_y"] = next_y_vals;
 

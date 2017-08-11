@@ -6,6 +6,7 @@
 #include <vector>
 #include "Eigen-3.3/Eigen/Core"
 #include "Eigen-3.3/Eigen/QR"
+#include "Eigen-3.3/Eigen/LU"
 #include "json.hpp"
 
 #include <fstream>
@@ -47,7 +48,7 @@ vector<double> TG::JMT(vector< double> start, vector <double> end, double T)
     [0.0, 10.0, 0.0, 0.0, 0.0, 0.0]
     */
     
-    /*MY CODE
+    //Example code CODE
     MatrixXd A = MatrixXd(3, 3);
 	A << T*T*T, T*T*T*T, T*T*T*T*T,
 			    3*T*T, 4*T*T*T,5*T*T*T*T,
@@ -70,12 +71,13 @@ vector<double> TG::JMT(vector< double> start, vector <double> end, double T)
 	
     return result;
     
-    */
-
+    
+    /*
     vector <double> a;
     a.push_back(1.0);
     a.push_back(2.0);
   
     return a;
+    */
     
 }
