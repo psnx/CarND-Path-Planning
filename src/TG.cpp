@@ -64,9 +64,11 @@ void Route::loadMap()
 TG::TG() 
 {           
     route.loadMap();
+    cout<<"map loaded";
 }
 TG::~TG() {}
 
+// Transform from Frenet s,d coordinates to Cartesian x,y
 vector<double> TG::getXY(double s, double d, vector<double> maps_s, vector<double> maps_x, vector<double> maps_y)
 {
     int prev_wp = -1;
@@ -114,7 +116,9 @@ pair <vector<double>, vector<double>> TG::getTrajectory(string s)
         // Previous path's end s and d values 
         
         // Sensor Fusion Data, a list of all other cars on the same side of the road.
-        auto sensor_fusion = j[1]["sensor_fusion"];            
+        vector<vector<double>> sensor_fusion = j[1]["sensor_fusion"];     
+        
+        prev_size = previous_path_x.size();
 
         vector<double> next_x_vals;
         vector<double> next_y_vals;
