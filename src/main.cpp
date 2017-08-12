@@ -12,6 +12,7 @@
 #include "spline.h"
 
 #include "TG.h"
+#include "Aux.h"
 
 using namespace std;
 
@@ -26,6 +27,8 @@ double rad2deg(double x) { return x * 180 / pi(); }
 // Checks if the SocketIO event has JSON data.
 // If there is data the JSON object in string format will be returned,
 // else the empty string "" will be returned.
+/* Deleted by TP use Aux::hasData
+
 string hasData(string s) {
   auto found_null = s.find("null");
   auto b1 = s.find_first_of("[");
@@ -37,7 +40,7 @@ string hasData(string s) {
   }
   return "";
 }
-
+*/
 double distance(double x1, double y1, double x2, double y2)
 {
 	return sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1));
@@ -164,7 +167,7 @@ vector<double> getXY(double s, double d, vector<double> maps_s, vector<double> m
 }
 
 int main() {
-  uWS::Hub h;
+  uWS::Hub h;  
 
   // Load up map values for waypoint's x,y,s and d normalized normal vectors
   vector<double> map_waypoints_x;
@@ -207,76 +210,102 @@ int main() {
     // The 2 signifies a websocket event
     //auto sdata = string(data).substr(0, length);
     //cout << sdata << endl;
-    if (length && length > 2 && data[0] == '4' && data[1] == '2') {
+	
+	/*
+	if (length && length > 2 && data[0] == '4' && data[1] == '2') 
+	{
+		auto s = Aux::hasData(data);
 
-      auto s = hasData(data);
-
-      if (s != "") {
-        auto j = json::parse(s);
-        
-        string event = j[0].get<string>();
-        
-        if (event == "telemetry") {
-          // j[1] is the data JSON object
-          
-        	// Main car's localization Data
-          	double car_x = j[1]["x"];
-          	double car_y = j[1]["y"];
-          	double car_s = j[1]["s"];
-          	double car_d = j[1]["d"];
-          	double car_yaw = j[1]["yaw"];
-          	double car_speed = j[1]["speed"];
-
-          	// Previous path data given to the Planner
-          	auto previous_path_x = j[1]["previous_path_x"];
-          	auto previous_path_y = j[1]["previous_path_y"];
-          	// Previous path's end s and d values 
-          	double end_path_s = j[1]["end_path_s"];
-          	double end_path_d = j[1]["end_path_d"];
-
-          	// Sensor Fusion Data, a list of all other cars on the same side of the road.
-          	auto sensor_fusion = j[1]["sensor_fusion"];
-
-          	json msgJson;
-
-          	vector<double> next_x_vals;
-          	vector<double> next_y_vals;
+	  	if (s != "") 
+	  	{
+			auto j = json::parse(s);
+			string event = j[0].get<string>();			
+			if (event == "telemetry") 
+			{
+				// j[1] is the data JSON object
 			
-			// My part
-			TG trajectory;
-			auto a = trajectory.JMT({1.0, 0.1}, {1.0, 0.1}, 0.1);
-			cout << "test \n";
-			cout << a[0];
+				// Main car's localization Data
+				double car_x = j[1]["x"];
+				double car_y = j[1]["y"];
+				double car_s = j[1]["s"];
+				double car_d = j[1]["d"];
+				double car_yaw = j[1]["yaw"];
+				double car_speed = j[1]["speed"];
 
+				// Previous path data given to the Planner
+				auto previous_path_x = j[1]["previous_path_x"];
+				auto previous_path_y = j[1]["previous_path_y"];
+				// Previous path's end s and d values 
+				double end_path_s = j[1]["end_path_s"];
+				double end_path_d = j[1]["end_path_d"];
 
+				// Sensor Fusion Data, a list of all other cars on the same side of the road.
+				auto sensor_fusion = j[1]["sensor_fusion"];
+				json msgJson;
 
-          	// TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
-			double dist_inc = 0.5;
-    		for(int i = 0; i < 50; i++)
-    		{
-				double next_s = car_s + (i+1)*dist_inc; 
-				double next_d = 6;
-				vector<double> xy = getXY(next_s, next_d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+				vector<double> next_x_vals;
+				vector<double> next_y_vals;
+			
+				// My part
+				TG trajectory;
+				auto a = trajectory.JMT({1.0, 0.1}, {1.0, 0.1}, 0.1);
+				cout << "test \n";
+				cout << a[0];
 
-          		next_x_vals.push_back(xy[0]);
-          		next_y_vals.push_back(xy[1]);
-    		}
+				// TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
+				double dist_inc = 0.5;
+				for(int i = 0; i < 50; i++)
+				{
+					double next_s = car_s + (i+1)*dist_inc; 
+					double next_d = 6;
+					vector<double> xy = getXY(next_s, next_d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
 
-          	msgJson["next_x"] = next_x_vals;
-          	msgJson["next_y"] = next_y_vals;
+					next_x_vals.push_back(xy[0]);
+					next_y_vals.push_back(xy[1]);
+				}
+				msgJson["next_x"] = next_x_vals;
+				msgJson["next_y"] = next_y_vals;
 
-          	auto msg = "42[\"control\","+ msgJson.dump()+"]";
+				auto msg = "42[\"control\","+ msgJson.dump()+"]";
 
-          	//this_thread::sleep_for(chrono::milliseconds(1000));
-          	ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
-          
-        }
-      } else {
+				//this_thread::sleep_for(chrono::milliseconds(1000));
+				ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);          
+			}
+		} 
+		else {
         // Manual driving
         std::string msg = "42[\"manual\",{}]";
         ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
       }
+	}
+	*/
+	TG trajectory;
+
+	if (length && length > 2 && data[0] == '4' && data[1] == '2') 
+	{
+		auto s = Aux::hasData(data);		
+		if (s != "")
+		{
+			
+			auto p = trajectory.getTrajectory(s);
+			
+			json msgJson;
+			msgJson["next_x"] = p.first;
+			msgJson["next_y"] = p.second;
+	
+			auto msg = "42[\"control\","+ msgJson.dump()+"]";
+	
+			//this_thread::sleep_for(chrono::milliseconds(1000));
+			ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
+		}
+		
+		
+	} else {
+        // Manual driving
+        std::string msg = "42[\"manual\",{}]";
+        ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
     }
+	
   });
 
   // We don't need this since we're not using HTTP but if it's removed the
