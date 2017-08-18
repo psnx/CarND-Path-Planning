@@ -39,7 +39,10 @@ class Aux
     Parser
     */
     static string hasData(string s);
-    static constexpr double pi() { return M_PI; }    
+    static constexpr double pi() { return M_PI; } 
+    static double deg2rad(double x) { return x * pi() / 180; }
+    static double rad2deg(double x) { return x * 180 / pi(); }   
+
 
 };
 

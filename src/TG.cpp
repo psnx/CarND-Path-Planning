@@ -94,36 +94,139 @@ vector<double> TG::getXY(double s, double d, vector<double> maps_s, vector<doubl
 
     return {x,y};
 }
-pair <vector<double>, vector<double>> TG::getTrajectory(string s)
-{
-    auto j = nlohmann::json::parse(s);    
-    string event = j[0].get<string>();
-    if (event == "telemetry") 
-    {
-        // j[1] is the data JSON object
-        // Main car's localization Data
-        car_x = j[1]["x"];
-        car_y = j[1]["y"];
-        car_s = j[1]["s"];
-        car_d = j[1]["d"];
-        car_yaw = j[1]["yaw"];
-        car_speed = j[1]["speed"];
-        end_path_s = j[1]["end_path_s"];
-        end_path_d = j[1]["end_path_d"];
-        // Previous path data given to the Planner
-        auto previous_path_x = j[1]["previous_path_x"];
-        auto previous_path_y = j[1]["previous_path_y"];
-        // Previous path's end s and d values 
-        
-        // Sensor Fusion Data, a list of all other cars on the same side of the road.
-        vector<vector<double>> sensor_fusion = j[1]["sensor_fusion"];     
-        
-        prev_size = previous_path_x.size();
+pair <vector<double>, vector<double>> TG::getTrajectory(string sensor_data)
+{   
+    auto j = nlohmann::json::parse(sensor_data);
+    //auto j = nlohmann::json::parse(s)
+    // j[1] is the data JSON object
+    // Main car's localization Data
+    car_x = j[1]["x"];
+    car_y = j[1]["y"];
+    car_s = j[1]["s"];
+    car_d = j[1]["d"];
+    car_yaw = j[1]["yaw"];
+    car_speed = j[1]["speed"];
+    end_path_s = j[1]["end_path_s"];
+    end_path_d = j[1]["end_path_d"];
+    // Previous path data given to the Planner
+    auto previous_path_x = j[1]["previous_path_x"];
+    auto previous_path_y = j[1]["previous_path_y"];
+    // Previous path's end s and d values 
+    
+    // Sensor Fusion Data, a list of all other cars on the same side of the road.
+    auto sensor_fusion = j[1]["sensor_fusion"];     
+    
 
-        vector<double> next_x_vals;
-        vector<double> next_y_vals;
+    /*prev_size = previous_path_x.size();
+
+    vector<double> ptsx;
+    vector<double> ptsy;
+
+    double ref_x = car_x;
+    double ref_y = car_y;
+    double ref_yaw = Aux::deg2rad(car_yaw);
+
+    if (prev_size < 2)
+    {
+        double prev_car_x = car_x - cos(car_yaw);
+        double prev_car_y = car_y - sin(car_yaw);
+
+        ptsx.push_back(prev_car_x);
+        ptsx.push_back(car_x);
+
+        ptsy.push_back(prev_car_y);
+        ptsy.push_back(car_y);
+    } 
+    else 
+    {
+        ref_x = previous_path_x[prev_size-1];
+        ref_y = previous_path_y[prev_size-1];
+
+        double ref_x_prev = previous_path_x[prev_size-2];
+        double ref_y_prev = previous_path_y[prev_size-2];
+        
+        ptsx.push_back(ref_x_prev);
+        ptsx.push_back(ref_x);
+
+        ptsy.push_back(ref_y_prev);
+        ptsy.push_back(ref_y);            
+    }
+
+    vector<double> next_wp0 = getXY(car_s+30, 10, route.waypoints_s, route.waypoints_x, route.waypoints_y);
+    vector<double> next_wp1 = getXY(car_s+60, 10, route.waypoints_s, route.waypoints_x, route.waypoints_y);
+    vector<double> next_wp2 = getXY(car_s+90, 10, route.waypoints_s, route.waypoints_x, route.waypoints_y);
+
+    ptsx.push_back(next_wp0[0]);
+    ptsx.push_back(next_wp1[0]);
+    ptsx.push_back(next_wp2[0]);
+
+    ptsy.push_back(next_wp0[1]);
+    ptsy.push_back(next_wp1[1]);
+    ptsy.push_back(next_wp2[1]);
+    
+    //transform to cars frame of refernce
+
+    for (int i = 0; ptsx.size(); i++)
+    {
+        double shift_x = ptsx[i]-ref_x;
+        double shift_y = ptsx[i]-ref_y;
+
+        ptsx[i] = shift_x*cos(-ref_yaw) - shift_y*sin(-ref_yaw);
+        ptsy[i] = shift_x*sin(-ref_yaw) + shift_y*cos(-ref_yaw);
+    }       
+    
+    tk::spline s;
+    s.set_points(ptsx, ptsy);        
+
+    vector<double> next_x_vals;
+    vector<double> next_y_vals;
+
+    
+
+    // start with prev path points;
+    for (int i=0; i<previous_path_x.size(); i++)
+    {
+        next_x_vals.push_back(previous_path_x[i]);
+        next_y_vals.push_back(previous_path_y[i]);
+    }
+
+    double target_x = 30.0;
+    double target_y = s(target_x);
+    double target_dist = sqrt(target_x*target_x + target_y*target_y);
+
+    double x_add_on = 0;
+
+    double ref_vel = 50;
+    
+    for (int i = 0; i<=50; i++)
+    {
+        double N = (target_dist/(0.02*ref_vel/2.24));
+        double x_point = x_add_on + (target_x)/N;
+        double y_point = s(target_x);
+
+        x_add_on = x_point;
+
+        double x_ref = x_point;
+        double y_ref = y_point;
+
+        //rotate back
+
+        x_point = x_ref*cos(ref_yaw) - y_ref*sin(ref_yaw);
+        y_point = x_ref*sin(ref_yaw) + y_ref*cos(ref_yaw);
+
+        x_point += ref_x;
+        y_point += ref_y;
+
+        next_x_vals.push_back(x_point);
+        next_y_vals.push_back(y_point);
+
+    }
+        
 
         // TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
+        */
+        vector<double> next_x_vals;
+        vector<double> next_y_vals;
         double dist_inc = 0.5;
         for(int i = 0; i < 50; i++)
         {
@@ -134,10 +237,12 @@ pair <vector<double>, vector<double>> TG::getTrajectory(string s)
             next_x_vals.push_back(xy[0]);
             next_y_vals.push_back(xy[1]);
         }
-        pair <vector<double>, vector<double>> points;
-        points = make_pair(next_x_vals, next_y_vals);
-        return points;
-    }    
+        
+        
+    pair <vector<double>, vector<double>> points;
+    points = make_pair(next_x_vals, next_y_vals);
+    return points;
+       
 }
 
 vector<double> TG::JMT(vector< double> start, vector <double> end, double T)
