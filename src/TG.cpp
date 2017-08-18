@@ -115,10 +115,13 @@ pair <vector<double>, vector<double>> TG::getTrajectory(string sensor_data)
     
     // Sensor Fusion Data, a list of all other cars on the same side of the road.
     auto sensor_fusion = j[1]["sensor_fusion"];     
+
+    //cout << "data read, car x" << car_x << "\n";
     
 
-    /*prev_size = previous_path_x.size();
+    prev_size = previous_path_x.size();
 
+    int lane = 1;
     vector<double> ptsx;
     vector<double> ptsy;
 
@@ -152,9 +155,12 @@ pair <vector<double>, vector<double>> TG::getTrajectory(string sensor_data)
         ptsy.push_back(ref_y);            
     }
 
-    vector<double> next_wp0 = getXY(car_s+30, 10, route.waypoints_s, route.waypoints_x, route.waypoints_y);
-    vector<double> next_wp1 = getXY(car_s+60, 10, route.waypoints_s, route.waypoints_x, route.waypoints_y);
-    vector<double> next_wp2 = getXY(car_s+90, 10, route.waypoints_s, route.waypoints_x, route.waypoints_y);
+    //cout << "ptsx, ptsy created" << ptsx.size() << "\n";
+    
+
+    vector<double> next_wp0 = getXY(car_s+30, 2+4*lane, route.waypoints_s, route.waypoints_x, route.waypoints_y);
+    vector<double> next_wp1 = getXY(car_s+60, 2+4*lane, route.waypoints_s, route.waypoints_x, route.waypoints_y);
+    vector<double> next_wp2 = getXY(car_s+90, 2+4*lane, route.waypoints_s, route.waypoints_x, route.waypoints_y);
 
     ptsx.push_back(next_wp0[0]);
     ptsx.push_back(next_wp1[0]);
@@ -166,22 +172,22 @@ pair <vector<double>, vector<double>> TG::getTrajectory(string sensor_data)
     
     //transform to cars frame of refernce
 
-    for (int i = 0; ptsx.size(); i++)
+    for (int i = 0; i<ptsx.size(); i++)
     {
         double shift_x = ptsx[i]-ref_x;
-        double shift_y = ptsx[i]-ref_y;
+        double shift_y = ptsy[i]-ref_y;
 
-        ptsx[i] = shift_x*cos(-ref_yaw) - shift_y*sin(-ref_yaw);
-        ptsy[i] = shift_x*sin(-ref_yaw) + shift_y*cos(-ref_yaw);
+        ptsx[i] = (shift_x*cos(0-ref_yaw) - shift_y*sin(0-ref_yaw));
+        ptsy[i] = (shift_x*sin(0-ref_yaw) + shift_y*cos(0-ref_yaw));
     }       
+    
+    cout << "waypoint transform: ptsx size: " << ptsx.size() << "\n";
     
     tk::spline s;
     s.set_points(ptsx, ptsy);        
 
     vector<double> next_x_vals;
-    vector<double> next_y_vals;
-
-    
+    vector<double> next_y_vals;    
 
     // start with prev path points;
     for (int i=0; i<previous_path_x.size(); i++)
@@ -195,14 +201,13 @@ pair <vector<double>, vector<double>> TG::getTrajectory(string sensor_data)
     double target_dist = sqrt(target_x*target_x + target_y*target_y);
 
     double x_add_on = 0;
-
     double ref_vel = 50;
     
-    for (int i = 0; i<=50; i++)
+    for (int i = 1; i<=50-previous_path_x.size(); i++)
     {
         double N = (target_dist/(0.02*ref_vel/2.24));
         double x_point = x_add_on + (target_x)/N;
-        double y_point = s(target_x);
+        double y_point = s(x_point);
 
         x_add_on = x_point;
 
@@ -218,13 +223,20 @@ pair <vector<double>, vector<double>> TG::getTrajectory(string sensor_data)
         y_point += ref_y;
 
         next_x_vals.push_back(x_point);
-        next_y_vals.push_back(y_point);
+        next_y_vals.push_back(y_point);       
 
     }
+    //diag
+    for (auto x: next_x_vals)
+    {
+        cout<<"x: " << x << "\t";
+    }
+    cout << "\n-----------------\n";
+    cout << "next_x_vals: " << next_x_vals.size() << "\n";
         
 
         // TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
-        */
+        /*
         vector<double> next_x_vals;
         vector<double> next_y_vals;
         double dist_inc = 0.5;
@@ -237,7 +249,7 @@ pair <vector<double>, vector<double>> TG::getTrajectory(string sensor_data)
             next_x_vals.push_back(xy[0]);
             next_y_vals.push_back(xy[1]);
         }
-        
+        */
         
     pair <vector<double>, vector<double>> points;
     points = make_pair(next_x_vals, next_y_vals);
