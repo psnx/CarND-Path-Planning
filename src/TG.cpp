@@ -64,9 +64,14 @@ void Route::loadMap()
 TG::TG() 
 {           
     route.loadMap();
-    cout<<"map loaded";
+    cout<<"\n Map loaded";
 }
-TG::~TG() {}
+TG::~TG() 
+{
+    //initial velocity
+    ref_vel = 0;
+
+}
 
 // Transform from Frenet s,d coordinates to Cartesian x,y
 vector<double> TG::getXY(double s, double d, vector<double> maps_s, vector<double> maps_x, vector<double> maps_y)
@@ -118,10 +123,49 @@ pair <vector<double>, vector<double>> TG::getTrajectory(string sensor_data)
 
     //cout << "data read, car x" << car_x << "\n";
     
+    //initial reference values
+    
+    int lane = 1;
 
     prev_size = previous_path_x.size();
+    if (prev_size > 0)
+    {
+        car_s = end_path_s;
+    }
 
-    int lane = 1;
+    bool too_close = false;
+    // find ref v to use
+    for (auto& car: sensor_fusion)
+    {
+        // for each detected car
+        float d = car[6];
+        if (d < 2+4*lane+2 && d > 2+4*lane-2)
+        {
+            double vx = car[3];
+            double vy = car[4];
+            double check_speed = sqrt(vx*vx + vy*vy);
+            double check_car_s = car[5];
+
+            check_car_s += ((double)prev_size*0.02*check_speed);
+            // check veihicles ahead s > than our s
+            if(check_car_s > car_s && check_car_s-car_s < 30)
+            {
+                cout << "too close detected";
+                too_close = true;
+            }
+        }
+    }
+
+    if (too_close)
+    {
+        ref_vel -= 0.224;
+    }
+    else if (ref_vel < 49.5)
+    {
+        ref_vel += 0.224;
+    }
+
+    
     vector<double> ptsx;
     vector<double> ptsy;
 
@@ -181,7 +225,7 @@ pair <vector<double>, vector<double>> TG::getTrajectory(string sensor_data)
         ptsy[i] = (shift_x*sin(0-ref_yaw) + shift_y*cos(0-ref_yaw));
     }       
     
-    cout << "waypoint transform: ptsx size: " << ptsx.size() << "\n";
+    //cout << "waypoint transform: ptsx size: " << ptsx.size() << "\n";
     
     tk::spline s;
     s.set_points(ptsx, ptsy);        
@@ -201,7 +245,7 @@ pair <vector<double>, vector<double>> TG::getTrajectory(string sensor_data)
     double target_dist = sqrt(target_x*target_x + target_y*target_y);
 
     double x_add_on = 0;
-    double ref_vel = 50;
+    
     
     for (int i = 1; i<=50-previous_path_x.size(); i++)
     {
@@ -226,35 +270,10 @@ pair <vector<double>, vector<double>> TG::getTrajectory(string sensor_data)
         next_y_vals.push_back(y_point);       
 
     }
-    //diag
-    for (auto x: next_x_vals)
-    {
-        cout<<"x: " << x << "\t";
-    }
-    cout << "\n-----------------\n";
-    cout << "next_x_vals: " << next_x_vals.size() << "\n";
-        
-
-        // TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
-        /*
-        vector<double> next_x_vals;
-        vector<double> next_y_vals;
-        double dist_inc = 0.5;
-        for(int i = 0; i < 50; i++)
-        {
-            double next_s = car_s + (i+1)*dist_inc; 
-            double next_d = 6;
-            vector<double> xy = getXY(next_s, next_d, route.waypoints_s, route.waypoints_x, route.waypoints_y);
-
-            next_x_vals.push_back(xy[0]);
-            next_y_vals.push_back(xy[1]);
-        }
-        */
         
     pair <vector<double>, vector<double>> points;
     points = make_pair(next_x_vals, next_y_vals);
-    return points;
-       
+    return points;       
 }
 
 vector<double> TG::JMT(vector< double> start, vector <double> end, double T)

@@ -52,6 +52,8 @@ class TG
         double end_path_s;
         double end_path_d;
         int prev_size;
+
+        double ref_vel;
         
         Route route;      
 
