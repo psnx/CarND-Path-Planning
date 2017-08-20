@@ -15,6 +15,7 @@
 #include "spline.h"
 
 
+
 #include <cmath>
 
 using namespace std;
@@ -42,7 +43,11 @@ class Aux
     static constexpr double pi() { return M_PI; } 
     static double deg2rad(double x) { return x * pi() / 180; }
     static double rad2deg(double x) { return x * 180 / pi(); }   
-
+    template <typename T>
+    static T clip(const T& n, const T& lower, const T& upper) {
+      return std::max(lower, std::min(n, upper));
+    }
+    
 
 };
 

@@ -14,6 +14,7 @@
 #include <fstream>
 #include <cmath>
 #include <vector>
+#include <algorithm>
 
 #include "TG.h"
 #include "Aux.h"
@@ -64,12 +65,13 @@ void Route::loadMap()
 TG::TG() 
 {           
     route.loadMap();
-    cout<<"\n Map loaded";
+    cout<<"\n Map loaded\n";
 }
 TG::~TG() 
 {
     //initial velocity
     ref_vel = 0;
+       
 
 }
 
@@ -99,6 +101,52 @@ vector<double> TG::getXY(double s, double d, vector<double> maps_s, vector<doubl
 
     return {x,y};
 }
+template<typename I>
+pair<double, double> TG::minFinder(I carlist, int prev_size, double car_s, double range, int lane)
+{  
+  double lowest_speed = 100;
+  double check_car_s = 100;
+  for (auto& car: carlist)
+  {
+    // for each detected car
+    float d = car[TG::Sf::d];
+    if (d < 2+4*lane+2 && d > 2+4*lane-2)
+    {
+      double vx = car[TG::Sf::vx];
+      double vy = car[TG::Sf::vy];
+      double check_speed = sqrt(vx*vx + vy*vy);
+      check_car_s = car[TG::Sf::s];
+      // prev_size*0.02 tells us how long time since path planning start. 
+      check_car_s += ((double)prev_size*0.02*check_speed);
+      // check veihicles ahead s > than our s
+      if((check_car_s > car_s) && (check_car_s-car_s < range))
+      {                
+        if (check_speed < lowest_speed) {lowest_speed = check_speed;}
+      }      
+    }
+  }
+  return make_pair(check_car_s-car_s, lowest_speed);
+}
+
+void TG::setTargetSpeed(double& actual_speed, double target_speed, double distance)
+{
+    target_speed = Aux::clip(target_speed, 0.0, 49.5);
+    double diff = target_speed - actual_speed;
+    //the car drives too fast:
+    if (actual_speed > target_speed)
+    {
+        if (abs(diff) < 0.3) { actual_speed = target_speed; }
+        if (abs(diff) < 30 && distance>10) {actual_speed -= abs(diff*0.01); cout << "speed coupling\n";}
+        else { actual_speed -= 0.224; cout<< "emergency";}
+    }
+
+    if (actual_speed < target_speed - 0.2) // we allow some tolerance to avoid oscillaion
+    {
+        actual_speed += 0.4;
+        if (abs(diff) < 0.3) { actual_speed = target_speed; }        
+    }
+}
+
 pair <vector<double>, vector<double>> TG::getTrajectory(string sensor_data)
 {   
     auto j = nlohmann::json::parse(sensor_data);
@@ -124,8 +172,9 @@ pair <vector<double>, vector<double>> TG::getTrajectory(string sensor_data)
     //cout << "data read, car x" << car_x << "\n";
     
     //initial reference values
+    int lane = 1; 
     
-    int lane = 1;
+    
 
     prev_size = previous_path_x.size();
     if (prev_size > 0)
@@ -134,38 +183,14 @@ pair <vector<double>, vector<double>> TG::getTrajectory(string sensor_data)
     }
 
     bool too_close = false;
-    // find ref v to use
-    for (auto& car: sensor_fusion)
-    {
-        // for each detected car
-        float d = car[6];
-        if (d < 2+4*lane+2 && d > 2+4*lane-2)
-        {
-            double vx = car[3];
-            double vy = car[4];
-            double check_speed = sqrt(vx*vx + vy*vy);
-            double check_car_s = car[5];
-
-            check_car_s += ((double)prev_size*0.02*check_speed);
-            // check veihicles ahead s > than our s
-            if(check_car_s > car_s && check_car_s-car_s < 30)
-            {
-                cout << "too close detected";
-                too_close = true;
-            }
-        }
-    }
-
-    if (too_close)
-    {
-        ref_vel -= 0.224;
-    }
-    else if (ref_vel < 49.5)
-    {
-        ref_vel += 0.224;
-    }
-
+    double target_speed;
+    double distance;
     
+    std::tie(distance, target_speed) = TG::minFinder(sensor_fusion, prev_size, car_s, 30, lane);
+    //if (target_speed < 49){ cout << "target speed: " << target_speed;}
+    setTargetSpeed(ref_vel, target_speed, distance);
+    
+
     vector<double> ptsx;
     vector<double> ptsy;
 
@@ -275,6 +300,7 @@ pair <vector<double>, vector<double>> TG::getTrajectory(string sensor_data)
     points = make_pair(next_x_vals, next_y_vals);
     return points;       
 }
+
 
 vector<double> TG::JMT(vector< double> start, vector <double> end, double T)
 {
