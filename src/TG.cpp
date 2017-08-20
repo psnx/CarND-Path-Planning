@@ -146,6 +146,19 @@ void TG::setTargetSpeed(double& actual_speed, double target_speed, double distan
         if (abs(diff) < 0.3) { actual_speed = target_speed; }        
     }
 }
+template<typename I>
+int TG::bestLane(I carlist, int prev_size, double car_s) 
+{    
+    auto vehicle = minFinder(carlist, prev_size, car_s-5.0, 50, 0);
+    double dist = vehicle.first;
+    double velocity = vehicle.second;
+    if (dist > 40) {
+        return 0;
+    } else {
+        return 1;
+    }   
+    
+}
 
 pair <vector<double>, vector<double>> TG::getTrajectory(string sensor_data)
 {   
@@ -189,6 +202,10 @@ pair <vector<double>, vector<double>> TG::getTrajectory(string sensor_data)
     std::tie(distance, target_speed) = TG::minFinder(sensor_fusion, prev_size, car_s, 30, lane);
     //if (target_speed < 49){ cout << "target speed: " << target_speed;}
     setTargetSpeed(ref_vel, target_speed, distance);
+    if (target_speed < 49.5) 
+    {
+        lane = bestLane(sensor_fusion, prev_size, car_s);
+    }
     
 
     vector<double> ptsx;
