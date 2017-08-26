@@ -53,6 +53,7 @@ class TG
         double end_path_s;
         double end_path_d;
         int prev_size;
+        int lane = 1; 
 
         double ref_vel;
         //int lane;
@@ -76,16 +77,23 @@ class TG
         Calculate the Jerk Minimizing Trajectory that connects the initial state
         to the final state in time T.
         */
-    string hasData(string s);
-    vector<double> getXY(double s, double d, vector<double> maps_s, vector<double> maps_x, vector<double> maps_y);
+        string hasData(string s);
+        vector<double> getXY(double s, double d, vector<double> maps_s, vector<double> maps_x, vector<double> maps_y);
+        
+        pair <vector<double>, vector<double>> getTrajectory(string s);
+        vector<double> JMT(vector< double> start, vector <double> end, double T);
+        
+        template<typename I>
+        pair<double, double> getClosestCarAhead(I carlist, int prev_size, double car_s, double range, int lane);
+        
+        void setTargetSpeed(double& actual_speed, double target_speed, double distance);
+        
+        template<typename I>
+        int getBestLane(I carlist, int prev_size, double car_s, int currentLane, double ourSpeed);
+        
+        template<typename I>
+        bool laneIsFreeAt(int ln, double our_s, I carlist, double from_delta_s, double to_delta_s, int prev_size);
     
-    pair <vector<double>, vector<double>> getTrajectory(string s);
-    vector<double> JMT(vector< double> start, vector <double> end, double T);
-    template<typename I>
-    pair<double, double> getClosestCarAhead(I carlist, int prev_size, double car_s, double range, int lane);
-    void setTargetSpeed(double& actual_speed, double target_speed, double distance);
-    template<typename I>
-    int getBestLane(I carlist, int prev_size, double car_s, int currentLane, double ourSpeed);
 
 
 };
