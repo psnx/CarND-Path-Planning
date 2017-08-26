@@ -82,10 +82,10 @@ class TG
     pair <vector<double>, vector<double>> getTrajectory(string s);
     vector<double> JMT(vector< double> start, vector <double> end, double T);
     template<typename I>
-    pair<double, double> minFinder(I carlist, int prev_size, double car_s, double range, int lane);
+    pair<double, double> getClosestCarAhead(I carlist, int prev_size, double car_s, double range, int lane);
     void setTargetSpeed(double& actual_speed, double target_speed, double distance);
     template<typename I>
-    int bestLane(I carlist, int prev_size, double car_s);
+    int getBestLane(I carlist, int prev_size, double car_s, int currentLane, double ourSpeed);
 
 
 };
