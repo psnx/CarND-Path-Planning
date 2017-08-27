@@ -56,7 +56,7 @@ class Aux
     }
     static int ClosestWaypoint(double x, double y, vector<double> maps_x, vector<double> maps_y);
 
-    static int detectLane(double d);
+    static int identifyLane(double d);
 };
 
 

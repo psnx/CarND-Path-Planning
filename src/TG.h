@@ -15,7 +15,7 @@
 #include "spline.h"
 
 #include "Aux.h"
-
+#include "PID.h"
 
 #include <cmath>
 #include <algorithm>
@@ -38,6 +38,31 @@ struct Route
     virtual ~Route();
     
     void loadMap();
+    
+};
+
+
+struct Localization
+{
+    vector<double> x;
+    vector<double> y;
+    vector<double> s;
+    vector<double> d;
+    vector<double> yaw;
+    vector<double> speed;
+    vector<double> end_path_s;
+    vector<double> end_path_d;
+    
+    //template <typename T> 
+    //auto previous_path_x;
+    //vector<T> previous_path_y;
+    //vector<T> sensor_fusion;
+
+
+    Localization();
+    virtual ~Localization();
+    
+    void update();
 };
 
 class TG 
@@ -59,7 +84,9 @@ class TG
         //int lane;
         enum Sf {id, x, y, vx, vy, s, d};
         
-        Route route;      
+        Route route; 
+        Localization localization;   
+        PID pid;  
 
         
     

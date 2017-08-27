@@ -134,12 +134,9 @@ int Aux::ClosestWaypoint(double x, double y, vector<double> maps_x, vector<doubl
 
 }
 
-int Aux::detectLane(double d) 
+int Aux::identifyLane(double d) 
 { 
-  int r; 
-  if (d < 0.01) {r = 1;}  
-  else {r = (int)((d-2)/4.0);}
-  return r;
+  return (int) floor(d/4.0);  
 }
 
   

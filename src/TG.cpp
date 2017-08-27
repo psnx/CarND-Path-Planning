@@ -26,6 +26,8 @@ using Eigen::VectorXd;
 Route::Route(){}
 Route::~Route(){}
 
+
+
 void Route::loadMap()
 {
     // Waypoint map to read from
@@ -58,22 +60,41 @@ void Route::loadMap()
     
 }
 
+/*********************************************************|
+|***************Car Localization &sensor fusion***********|
+|*********************************************************/
+Localization::Localization(){}
+Localization::~Localization(){}
+
+
 /******************************************|
 |***************Trajectory Generator*******|
 |******************************************/
 
+
+
+
 TG::TG() 
 {           
     route.loadMap();
-    cout<<"\n Map loaded\n";
+    cout<<"\nMap loaded\n";
+
+    //initialize a simple PID controller from Term2
+    double init_Kp = -0.5;
+    double init_Kd = -0.5;
+    double init_Ki = -0;
+    
+
+    pid.Init(init_Kp, init_Ki, init_Kd);
+
+    
 }
 TG::~TG() 
 {
     //initial velocity
     ref_vel = 0;
     // initial lane position
-    lane = 1;
-       
+    lane = 1;       
 
 }
 
@@ -114,7 +135,7 @@ pair<double, double> TG::getClosestCarAhead(I carlist, int prev_size, double car
     {
         // for each detected car
         float d = car[TG::Sf::d];
-        if (d < 2+4*inLane+2 && d > 2+4*inLane-2)      
+        if (Aux::identifyLane(d) == inLane)      
         {
             double vx = car[TG::Sf::vx];
             double vy = car[TG::Sf::vy];
@@ -156,6 +177,8 @@ bool TG::laneIsFreeAt(int ln, double our_s, I carlist, double from_delta_s, doub
             // prev_size*0.02 tells us how long time since path planning start. 
             c_s += ((double)prev_size*0.02*c_speed);
 
+
+
             // check vehicles only ahead veh_s > than our s
             if((c_s > our_s - from_delta_s) && (c_s < our_s + to_delta_s))
             {
@@ -166,26 +189,24 @@ bool TG::laneIsFreeAt(int ln, double our_s, I carlist, double from_delta_s, doub
     return isFree;
 }
 
-void TG::setTargetSpeed(double& actual_speed, double target_speed, double distance)
-{
-    target_speed = Aux::clip(target_speed, 0.0, 49.5);
-    double diff = target_speed - actual_speed;
-    //the car drives too fast:
-    if (actual_speed > target_speed)
-    {
-        if (abs(diff) < 0.2) { actual_speed = target_speed; }
-        if (distance<18) {
-            actual_speed -= Aux::clip(abs(distance * diff*0.001),0.0,0.3); 
-            cout << "speed coupling\n";
-        }
-        //else { actual_speed -= 0.224; cout<< "emergency";}
-    }
+double acceleration;
 
-    if (actual_speed < target_speed)
-    {
-        actual_speed += 0.4;
-        //if (abs(diff) < 0.3) { actual_speed = target_speed; }        
-    }
+void TG::setTargetSpeed(double& actual_speed, double target_speed, double distance)
+{    
+    target_speed = Aux::clip(target_speed, 0.0, 49.5);
+    double delta_speed = target_speed - actual_speed;
+    
+    
+    double target_tailing = 20;
+    double t = abs(delta_speed/Aux::clip(distance,0.01, 100.0));
+    pid.UpdateError(distance - target_tailing);
+    double e = pid.TotalError();
+    cout << "Dist: " << distance << "\t Total error: " << e << "\n";
+    actual_speed -= Aux::clip(0.05*e, -0.5, 0.5);
+        
+    if (abs(delta_speed) < 0.2) { actual_speed = target_speed; }        
+    actual_speed = Aux::clip(actual_speed, 0.0, 49.5);    
+        
 }
 
 template<typename I>
@@ -194,40 +215,41 @@ int TG::getBestLane(I carlist, int prev_size, double car_s, int currentLane, dou
     double minCost = 10000;
     int targetLane = currentLane;
     //evaluate adjacent lanes for line change
-    //iterates through all the lanes
-    cout <<"current lane before: \t " << currentLane << "\t";
+    //iterates through all the lanes       
     
-    for (int i = 0; i<3; i++)
+    for (int i = 2; i>=0; i--)
     {        
         double speed;
         double distance;        
-        int cost = 0;
+        int cost = 0;        
 
         if (currentLane != i) //evaluation of any other lane than our own
         {
             //critical moves
-            if (!laneIsFreeAt(i, car_s, carlist, 10, 4, prev_size)) {cost+=1000;}
-            if (prev_size < 5000) {cost += 1000;} // do not do this in the beginning 
+            if (!laneIsFreeAt(i, car_s, carlist, 10, 20, prev_size)) {cost+=1000; }            
             if (ourSpeed < 10.0) {cost += 1000;} //avoid almost standstill lane change due to untracked incoming traffic in target lane
             if (abs(i - currentLane) > 1) { cost += 1000; } // only one lane change at a time
+            
             //comfort             
             cost += 100; // no change without reason;           
+            if (i != 1) {cost += 10;}
         }
-        std::tie(distance, speed) = getClosestCarAhead(carlist, prev_size, car_s, 50.0, i);
-        if (distance < 40) 
+        std::tie(distance, speed) = getClosestCarAhead(carlist, prev_size, car_s, 80.0, i);
+        if (distance < 80) 
         { 
-            cost += 100 * (50 - Aux::clip(speed, 0.0, 50.0)); // if the lane is occupied by a slow vehicle
-            cost += 100 * (40-distance); //penalize "tailing"
+            cost += 30 * (50 - Aux::clip(speed, 0.0, 50.0)); // if the lane is occupied by a slow vehicle
+            cost += 5 * (80-distance); //penalize "tailing"
         }         
         
         if (cost < minCost) {
             targetLane = i; 
             minCost = cost;            
         }
+        cout << "lane: "<< i << "\t cost: " << cost << "\n";
+    } 
+    cout<<"-------------->"<< targetLane << "------------------------\n";
+    targetLane = 1;
 
-        cout <<"current lane: \t " << currentLane << "\t";
-        cout <<"target lane: \t " << targetLane << "\n";
-    }    
     return targetLane;
 }
 
@@ -258,9 +280,7 @@ pair <vector<double>, vector<double>> TG::getTrajectory(string sensor_data)
     //initial reference values
     
 
-    lane = Aux::detectLane(end_path_d);
-    cout << "initial d: -----------" << end_path_d << "\n" ;
-    cout << "initial lane: -----------" << lane ;
+    lane = Aux::identifyLane(end_path_d);    
     
 
     prev_size = previous_path_x.size();
@@ -272,7 +292,7 @@ pair <vector<double>, vector<double>> TG::getTrajectory(string sensor_data)
     double target_speed;
     double distance;
     
-    std::tie(distance, target_speed) = TG::getClosestCarAhead(sensor_fusion, prev_size, car_s, 50, lane);
+    std::tie(distance, target_speed) = TG::getClosestCarAhead(sensor_fusion, prev_size, car_s, 40, lane);
     setTargetSpeed(ref_vel, target_speed, distance);
     lane = getBestLane(sensor_fusion, prev_size, car_s, lane, ref_vel);
     
