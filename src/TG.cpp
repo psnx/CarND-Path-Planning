@@ -81,7 +81,7 @@ TG::TG()
 
     //initialize a simple PID controller from Term2
     double init_Kp = -0.5;
-    double init_Kd = -0.5;
+    double init_Kd = -0.8;
     double init_Ki = -0;
     
 
@@ -195,15 +195,14 @@ void TG::setTargetSpeed(double& actual_speed, double target_speed, double distan
 {    
     target_speed = Aux::clip(target_speed, 0.0, 49.5);
     double delta_speed = target_speed - actual_speed;
-    
-    
-    double target_tailing = 20;
-    double t = abs(delta_speed/Aux::clip(distance,0.01, 100.0));
+    double target_tailing = 30;
     pid.UpdateError(distance - target_tailing);
+    
     double e = pid.TotalError();
+    
     cout << "Dist: " << distance << "\t Total error: " << e << "\n";
     actual_speed -= Aux::clip(0.05*e, -0.5, 0.5);
-        
+    cout << "Dist: " << distance << "\t Total error: " << e << " 0.05*e: " << Aux::clip(0.05*e, -0.5, 0.5) <<"\n";
     if (abs(delta_speed) < 0.2) { actual_speed = target_speed; }        
     actual_speed = Aux::clip(actual_speed, 0.0, 49.5);    
         
@@ -226,20 +225,22 @@ int TG::getBestLane(I carlist, int prev_size, double car_s, int currentLane, dou
         if (currentLane != i) //evaluation of any other lane than our own
         {
             //critical moves
-            if (!laneIsFreeAt(i, car_s, carlist, 10, 20, prev_size)) {cost+=1000; }            
-            if (ourSpeed < 10.0) {cost += 1000;} //avoid almost standstill lane change due to untracked incoming traffic in target lane
-            if (abs(i - currentLane) > 1) { cost += 1000; } // only one lane change at a time
+            if (!laneIsFreeAt(i, car_s, carlist, 10, 20, prev_size)) {cost+=10000; }            
+            if (ourSpeed < 15.0) {cost += 1000;} //avoid almost standstill lane change due to untracked incoming traffic in target lane
+            if (abs(i - currentLane) > 1) { cost += 10000; } // only one lane change at a time
             
             //comfort             
             cost += 100; // no change without reason;           
-            if (i != 1) {cost += 10;}
+            
         }
         std::tie(distance, speed) = getClosestCarAhead(carlist, prev_size, car_s, 80.0, i);
         if (distance < 80) 
         { 
             cost += 30 * (50 - Aux::clip(speed, 0.0, 50.0)); // if the lane is occupied by a slow vehicle
             cost += 5 * (80-distance); //penalize "tailing"
-        }         
+        }   
+        
+        if (i != 1) {cost += 101;}
         
         if (cost < minCost) {
             targetLane = i; 
@@ -248,7 +249,7 @@ int TG::getBestLane(I carlist, int prev_size, double car_s, int currentLane, dou
         cout << "lane: "<< i << "\t cost: " << cost << "\n";
     } 
     cout<<"-------------->"<< targetLane << "------------------------\n";
-    targetLane = 1;
+    //targetLane = 1;
 
     return targetLane;
 }
@@ -333,9 +334,9 @@ pair <vector<double>, vector<double>> TG::getTrajectory(string sensor_data)
     //cout << "ptsx, ptsy created" << ptsx.size() << "\n";
     
 
-    vector<double> next_wp0 = getXY(car_s+30, 2+4*lane, route.waypoints_s, route.waypoints_x, route.waypoints_y);
-    vector<double> next_wp1 = getXY(car_s+60, 2+4*lane, route.waypoints_s, route.waypoints_x, route.waypoints_y);
-    vector<double> next_wp2 = getXY(car_s+90, 2+4*lane, route.waypoints_s, route.waypoints_x, route.waypoints_y);
+    vector<double> next_wp0 = getXY(car_s+40, 2+4*lane, route.waypoints_s, route.waypoints_x, route.waypoints_y);
+    vector<double> next_wp1 = getXY(car_s+80, 2+4*lane, route.waypoints_s, route.waypoints_x, route.waypoints_y);
+    vector<double> next_wp2 = getXY(car_s+100, 2+4*lane, route.waypoints_s, route.waypoints_x, route.waypoints_y);
 
     ptsx.push_back(next_wp0[0]);
     ptsx.push_back(next_wp1[0]);
