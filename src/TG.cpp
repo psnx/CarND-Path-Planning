@@ -72,8 +72,6 @@ Localization::~Localization(){}
 |******************************************/
 
 
-
-
 TG::TG() 
 {           
     route.loadMap();
@@ -98,7 +96,7 @@ TG::~TG()
 
 }
 
-// Transform from Frenet s,d coordinates to Cartesian x,y
+
 vector<double> TG::getXY(double s, double d, vector<double> maps_s, vector<double> maps_x, vector<double> maps_y)
 {
     int prev_wp = -1;
@@ -159,6 +157,8 @@ pair<double, double> TG::getClosestCarAhead(I carlist, int prev_size, double car
     return make_pair(minDistance, speed_of_closest);
 }
 
+
+
 template<typename I>
 bool TG::laneIsFreeAt(int ln, double our_s, I carlist, double from_delta_s, double to_delta_s, int prev_size)
 {
@@ -189,7 +189,6 @@ bool TG::laneIsFreeAt(int ln, double our_s, I carlist, double from_delta_s, doub
     return isFree;
 }
 
-double acceleration;
 
 void TG::setTargetSpeed(double& actual_speed, double target_speed, double distance)
 {    
@@ -230,8 +229,7 @@ int TG::getBestLane(I carlist, int prev_size, double car_s, int currentLane, dou
             if (abs(i - currentLane) > 1) { cost += 10000; } // only one lane change at a time
             
             //comfort             
-            cost += 100; // no change without reason;           
-            
+            cost += 100; // no change without reason;
         }
         std::tie(distance, speed) = getClosestCarAhead(carlist, prev_size, car_s, 80.0, i);
         if (distance < 80) 
@@ -329,9 +327,7 @@ pair <vector<double>, vector<double>> TG::getTrajectory(string sensor_data)
 
         ptsy.push_back(ref_y_prev);
         ptsy.push_back(ref_y);            
-    }
-
-    //cout << "ptsx, ptsy created" << ptsx.size() << "\n";
+    }    
     
 
     vector<double> next_wp0 = getXY(car_s+40, 2+4*lane, route.waypoints_s, route.waypoints_x, route.waypoints_y);
